@@ -16,5 +16,7 @@ Run Stableswap plots script
 ipython -i stableswap_plots.py
 ```
 
-![alt tag](./plots/stableswap_figure_1.png | width=200)
-![alt tag](./plots/stableswap_figure_2.png | width=200)
+<!-- ![alt tag](./plots/stableswap_figure_1.png) -->
+<!-- ![alt tag](./plots/stableswap_figure_2.png) -->
+
+<img src="./plots/stableswap_figure_1.png" width="100" height="100">
