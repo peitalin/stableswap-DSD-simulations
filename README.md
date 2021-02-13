@@ -19,5 +19,5 @@ ipython -i stableswap_plots.py
 <!-- ![alt tag](./plots/stableswap_figure_1.png) -->
 <!-- ![alt tag](./plots/stableswap_figure_2.png) -->
 
-<img src="./plots/stableswap_figure_1.png" width="200" height="200">
-<img src="./plots/stableswap_figure_2.png" width="200" height="200">
+<img src="./plots/stableswap_figure_1.png" width="250" height="200">
+<img src="./plots/stableswap_figure_2.png" width="250" height="200">
