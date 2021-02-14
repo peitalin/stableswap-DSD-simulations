@@ -16,7 +16,8 @@ class Uniswap:
         x=1200,
         y=400,
         x_name="USDC",
-        y_name="DSD"
+        y_name="DSD",
+        treasury_tax_rate=0.5
     ):
         # x, y are initial balances
         self.balance_x = x
@@ -35,6 +36,7 @@ class Uniswap:
             'burns': [0],
         })
         self.ohlc = None
+        self.treasury_tax_rate=0.5
 
 
     def __repr__(self):
@@ -76,6 +78,7 @@ class Uniswap:
         self.ohlc = ohlc_df.set_index("Date")
         return self.ohlc
 
+
     def ohlc_plot(self, num_sections=10):
         self.ohlc_generate_prices(num_sections)
         fplt.plot(
@@ -88,8 +91,9 @@ class Uniswap:
 
 
     def show_balances(self):
-        # print("{} balance:\t{}".format(x_name, self.balance_x))
-        print("{} balance:\t{}".format(y_name, self.balance_y))
+        # print("{} balance:\t{}".format(self.x_name, self.balance_x))
+        print("{} balance:\t{}".format(self.y_name, self.balance_y))
+
 
     def show_price(self):
         print("{y_name}/{x_name} price: {price}".format(
@@ -98,15 +102,10 @@ class Uniswap:
             price = self.price_oracle(),
         ))
 
-    def dxdy_once(self, y2, y1, x2, x1):
-        """calculates derivative for dx relative to dy"""
-        # warning: this is an inverted derivative: dxdy
-        # run over rise, as we need to figure out dUSDC/dDSD
-        # when we sell DSD
-        return np.diff([x2, x1])[0] / np.diff([y2, y1])[0]
 
     def price_oracle(self):
         return self.balance_x / self.balance_y
+
 
     def swap(self, trade, tax_function):
         """
@@ -116,9 +115,12 @@ class Uniswap:
         if trade['type'] == 'buy':
             price_after = self.buy_dsd(trade['amount'])
         else:
-            price_after = self.sell_dsd(trade['amount'], tax_function)
+            if tax_function == "slippage":
+                price_after = self.sell_dsd_slippage_tax(trade['amount'])
+            else:
+                price_after = self.sell_dsd(trade['amount'], tax_function)
 
-        self.show_balances()
+        # self.show_balances()
         # self.show_price()
         return price_after
 
@@ -173,7 +175,8 @@ class Uniswap:
         after_price = self.price_oracle()
 
         # fraction of burnt dsd, to treasury, say 50%
-        burn_to_treasury = 0.5 * burn
+        burn_to_treasury = self.treasury_tax_rate * burn
+
         self.history['treasury_balances'].append(
             self.history['treasury_balances'][-1] + burn_to_treasury
         )
@@ -183,46 +186,94 @@ class Uniswap:
         return self.price_oracle()
 
 
+
     def sell_dsd_slippage_tax(self, dsd_amount):
         """Sells dsd_amount worth of DSD
         sales taxes are scaled by slippage imparted to AMM curve
         """
         # this needs its own function as you need to calculate slipage first, before calculating burn and updating pool balances
         # unlike the other simpe price-based sales taxes
-
         dsd = np.abs(dsd_amount)
-
-        x = uniswap_x(self.balance_y + dsd, self.k)
-
         prior_balance_x = self.balance_x
         prior_balance_y = self.balance_y
+        prior_price = self.price_oracle()
 
-        after_balance_x = x
+        # balance_y (DSD) increases when DSD is sold to pool
+        after_balance_x = uniswap_x(
+            prior_balance_y + dsd,
+            self.k
+        )
         after_balance_y = self.balance_y + dsd
 
         # calculate slippage + burn first, before swap
-        slippage = self.dxdy_once(
-            after_balance_y,
-            prior_balance_y,
-            after_balance_x,
-            prior_balance_x,
+        slippage = dydx_once(
+            x2 = after_balance_y,
+            x1 = prior_balance_y,
+            y2 = after_balance_x,
+            y1 = prior_balance_x,
         )
+        burn =  (1 - np.abs(slippage)) * dsd if (np.abs(slippage) < 1) else 0
+        # print("burn: {}".format(1 - slippage))
+        # print("price: {}".format(prior_price))
         print("slippage: {}".format(slippage))
 
+        # actual amount sold into LP pool after burn
+        leftover_dsd = dsd - burn
+
+        # now update calculate burn-adjusted balance for x
+        after_balance_x = uniswap_x(
+            prior_balance_y + leftover_dsd,
+            self.k
+        )
+
+        # now update balances adjusting for burn
         self.balance_y = after_balance_y
         self.balance_x = after_balance_x
+        after_price = self.price_oracle()
 
-        # if (slippage > )
-        # dsd_burn = np.abs(slippage * dsd)
+        # fraction of sales taxes paid to treasury
+        burn_to_treasury = self.treasury_tax_rate * burn
 
-        # fraction of sales are burnt, fraction to treasury
-        # scaled by slippage
-        self.treasury_balance += (1 - slippage) * dsd
+        self.history['treasury_balances'].append(
+            self.history['treasury_balances'][-1] + burn_to_treasury
+        )
+        self.history['prices'].append(after_price)
+        self.history['burns'].append(burn_to_treasury)
 
         return self.price_oracle()
 
 
 
+#### Invariants ####
+## work out balance of token X in a pool, given Y
+## holding invariant constant
+
+def uniswap_y(x, k=250):
+    y = k/x
+    assert not np.isnan(y)
+    assert y >= 0
+    return y
 
 
+def uniswap_x(y, k=250):
+    x = k/y
+    assert not np.isnan(x)
+    assert x >= 0
+    return x
 
+
+def linear_y(x, k=250):
+    y = k - x
+    assert not np.isnan(y)
+    assert y >= 0
+    return y
+
+
+def dydx_once(y2, y1, x2, x1):
+    """calculates derivative for dy relative to dx"""
+    # Needed to figure out dUSDC/dDSD slippage/price impact
+    # print("y2: ", y2)
+    # print("y1: ", y1)
+    # print("x2: ", x2)
+    # print("x1: ", x1)
+    return np.diff([y2, y1])[0] / np.diff([x2, x1])[0]
