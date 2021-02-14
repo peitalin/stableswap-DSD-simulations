@@ -205,12 +205,25 @@ class Curve:
 
 
     def price_oracle(self):
-        balance_y = stableswap_y(
-            self.balance_x,
+        prior_balance_x = self.balance_x
+        prior_balance_y = self.balance_y
+
+        after_balance_x = self.balance_x + 1
+        after_balance_y = stableswap_y(
+            self.balance_x + 1,
             self.xp,
             self.A,
         )
-        return self.balance_x / balance_y
+        # calculate slippage + burn first, before swap
+        slippage = dxdy_once(
+            y2 = after_balance_y,
+            y1 = prior_balance_y,
+            x2 = after_balance_x,
+            x1 = prior_balance_x,
+        )
+        price = np.abs(slippage)
+        return price
+
 
 
     def swap(self, trade, tax_function):
@@ -401,20 +414,20 @@ def stableswap_x(y, xp=[50,50], A=85):
 def dydx_once(y2, y1, x2, x1):
     """calculates derivative for dy relative to dx"""
     # Needed to figure out dUSDC/dDSD slippage/price impact
-    # print("y2: ", y2)
-    # print("y1: ", y1)
-    # print("x2: ", x2)
-    # print("x1: ", x1)
+    print("y2: ", y2)
+    print("y1: ", y1)
+    print("x2: ", x2)
+    print("x1: ", x1)
     return np.diff([y2, y1])[0] / np.diff([x2, x1])[0]
 
 
 def dxdy_once(y2, y1, x2, x1):
     """calculates derivative for dx relative to dy"""
     # Needed to figure out dUSDC/dDSD slippage/price impact
-    # print("y2: ", y2)
-    # print("y1: ", y1)
-    # print("x2: ", x2)
-    # print("x1: ", x1)
+    print("y2: ", y2)
+    print("y1: ", y1)
+    print("x2: ", x2)
+    print("x1: ", x1)
     return np.diff([x2, x1])[0] / np.diff([y2, y1])[0]
 
 
