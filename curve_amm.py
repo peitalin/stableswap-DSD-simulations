@@ -96,3 +96,19 @@ def _xp(rates):
         print(result[i])
     return result
 
+
+#### Invariants ####
+## get the number of token y in a pool, given x
+## holding the Stableswap invariant constant
+
+def stableswap_y(x, xp=[50,50], A=85):
+    i = 0 # position 0 for first coin
+    j = 1 # position 1 for second coin
+    amp = A
+    y = get_y(i, j, x, xp, amp)
+    assert not np.isnan(y)
+    assert y >= 0
+    return y
+
+
+
