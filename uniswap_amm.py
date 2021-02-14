@@ -91,7 +91,7 @@ class Uniswap:
 
 
     def show_balances(self):
-        # print("{} balance:\t{}".format(self.x_name, self.balance_x))
+        print("{} balance:\t{}".format(self.x_name, self.balance_x))
         print("{} balance:\t{}".format(self.y_name, self.balance_y))
 
 
@@ -176,12 +176,13 @@ class Uniswap:
 
         # fraction of burnt dsd, to treasury, say 50%
         burn_to_treasury = self.treasury_tax_rate * burn
+        actual_burn = (1 - self.treasury_tax_rate) * burn
 
         self.history['treasury_balances'].append(
             self.history['treasury_balances'][-1] + burn_to_treasury
         )
         self.history['prices'].append(after_price)
-        self.history['burns'].append(burn_to_treasury)
+        self.history['burns'].append(actual_burn)
 
         return self.price_oracle()
 
@@ -233,14 +234,16 @@ class Uniswap:
 
         # fraction of sales taxes paid to treasury
         burn_to_treasury = self.treasury_tax_rate * burn
+        actual_burn = (1 - self.treasury_tax_rate) * burn
 
         self.history['treasury_balances'].append(
             self.history['treasury_balances'][-1] + burn_to_treasury
         )
         self.history['prices'].append(after_price)
-        self.history['burns'].append(burn_to_treasury)
+        self.history['burns'].append(actual_burn)
 
         return self.price_oracle()
+
 
 
 
@@ -272,8 +275,4 @@ def linear_y(x, k=250):
 def dydx_once(y2, y1, x2, x1):
     """calculates derivative for dy relative to dx"""
     # Needed to figure out dUSDC/dDSD slippage/price impact
-    # print("y2: ", y2)
-    # print("y1: ", y1)
-    # print("x2: ", x2)
-    # print("x1: ", x1)
     return np.diff([y2, y1])[0] / np.diff([x2, x1])[0]

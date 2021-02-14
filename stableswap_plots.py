@@ -42,15 +42,19 @@ def plot_fig1_fig2():
     x2 = np.linspace(0.01, 10, NUM_OBS)
     y2 = [linear_y(x, 10) for x in x2]
 
+    # x3 = np.linspace(0.01, 1000000, NUM_OBS)
+    # xp = [100000,500000]
     x3 = np.linspace(0.01, 30, NUM_OBS)
     xp = [5,5]
-    y3 = [stableswap_y(x, [5,5], 20) for x in x3]
+    y3 = [stableswap_y(x, xp, 20) for x in x3]
 
     plt.figure(figsize=[4.75,3])
+    # plt.figure(figsize=[4,4])
     plt.plot(x1, y1, color='purple', linestyle='dashed')
     plt.plot(x2, y2, color='red', linestyle='dotted')
     plt.plot(x3, y3, color='blue')
-    plt.axis([0, 30, 0, 20])
+    # plt.axis([0, 1000000, 0, 1000000])
+    plt.axis([0, 30, 0, 25])
 
 
     ##### Fig. 2 In Stableswap whitepaper
