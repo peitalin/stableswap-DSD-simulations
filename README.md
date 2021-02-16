@@ -16,7 +16,7 @@ ipython -i stableswap_plots.py
 
 Run Uniswap sales tax simulation scripts
 ```
-ipython -i main.py
+ipython -i main_uniswap.py
 ```
 
 Run Curve AMM sales tax simulation scripts
