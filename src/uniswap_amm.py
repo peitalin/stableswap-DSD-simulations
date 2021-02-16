@@ -31,7 +31,7 @@ class Uniswap:
             # history of treasury balances over time
             'treasury_balances': [0],
             # history of prices
-            'prices': [x/y], # initial price
+            'prices': [self.price_oracle()], # initial price
             # history of burns over time
             'burns': [0],
         })

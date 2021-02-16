@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from curve_amm import get_y, stableswap_y
-from uniswap_amm import uniswap_y, uniswap_x, linear_y
+from src.curve_amm import get_y, stableswap_y
+from src.uniswap_amm import uniswap_y, uniswap_x, linear_y
 
 #######################################
 ## Curve's Stableswap Whitepaper plots
@@ -24,7 +24,7 @@ def find_peg_point(x1: list[float], y1: list[float]) -> int:
     return np.argmin([np.abs(x - y) for x,y in zip(x1, y1)])
 
 
-def dydx(yy: list[float], xx: list[float], absolute=True) -> list[float]:
+def dydx_array(yy: list[float], xx: list[float], absolute=True) -> list[float]:
     """calculates an array of derivatives"""
     assert len(xx) == len(yy)
     dydx_array: list[float] = np.abs(np.diff(yy)/np.diff(xx))
@@ -64,13 +64,13 @@ def plot_fig1_fig2():
 
 
     dx1 = [x-peg_point for x in x1] # shifts graph to past peg point
-    dydx1 = dydx(y1, x1)
+    dydx1 = dydx_array(y1, x1)
 
     dx3 = [x-peg_point for x in x3]
     # balances = [5,5]
     # xp = _xp([1, 1]) # -> [5,5]
     y3 = [stableswap_y(x, [5,5], 100) for x in x3]
-    dydx3 = dydx(y3, x3)
+    dydx3 = dydx_array(y3, x3)
 
     plt.figure(figsize=[5,3])
     plt.plot(

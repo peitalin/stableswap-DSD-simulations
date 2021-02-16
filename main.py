@@ -14,11 +14,18 @@ from tax_functions import quadratic_tax, linear_tax, no_tax
 from stableswap_plots import plot_fig1_fig2
 
 
-# from curve_amm import Curve, get_y, stableswap_y, stableswap_x
-# c = Curve(100000, 100000, A=100)
+from curve_amm import Curve, _xp, stableswap_y, stableswap_x
+# c = Curve(100000, 500000, A=20)
 # stableswap_x( 100000 + 1, [100000, 100000], 2000)
-# (100000.1-100000)/(99999.9004997 - 100000)
+# (100001-100000)/(99999.04761917747 - 100000)
 
+# 0.9895494479
+# 0.9894878188482094
+# 0.9898556552223209
+
+c = Curve(100000, 100000, A=20)
+c.swap(({ 'type': "sell", "amount": 10000 }), tax_function=no_tax)
+c.swap(({ 'type': "buy", "amount": 10000 }), tax_function=no_tax)
 
 
 def generate_trade(mu, sigma):
@@ -27,11 +34,6 @@ def generate_trade(mu, sigma):
         return dict({ 'type': "buy", 'amount': rv })
     else:
         return dict({ 'type': "sell", 'amount': rv })
-
-
-
-if __name__=="__main__":
-    print("DSD DIP-14 Simulations!")
 
 
 avg_prices = dict({
@@ -60,11 +62,16 @@ avg_treasury_balances = dict({
 })
 
 
+if __name__=="__main__":
+    print("DSD DIP-14 Simulations!")
 
 
-mu = 0
-sigma = 4000
-nobs = 2000
+
+
+
+mu = -1000
+sigma = 8000
+nobs = 8000
 plot_variate = 'prices'
 # plot_variate = 'treasury_balances'
 # plot_variate = 'burns'
@@ -78,10 +85,10 @@ colors = dict({
     "no_tax": "black",
     "slippage_tax_uni": "crimson",
     "slippage_tax_curve": "green",
-    "quadratic_tax_curve": "purple",
+    "quadratic_tax_curve": "orange",
 })
 alpha_opacity = 0.05
-num_iterations = 100
+num_iterations = 50
 
 
 
@@ -91,16 +98,18 @@ fig, ax = plt.subplots()
 
 # Curve quadratic tax
 for i in range(num_iterations):
-    c = Curve(lp_initial_usdc, lp_initial_dsd)
+    c = Curve(lp_initial_usdc, lp_initial_dsd, A=100)
     trades = [generate_trade(mu, sigma) for x in range(nobs)]
-    _ = [c.swap(x, tax_function=quadratic_tax) for x in trades]
+    # trades = [x for x in _trades if x['type'] == 'sell']
+    _ = [c.swap(x, tax_function=no_tax) for x in trades]
+    # _ = [c.swap(x, tax_function=quadratic_tax) for x in trades]
 
     # notes: Average trade is -1000, but DSD prices generally
     # end up increasing because of the burn + slippage working against a seller
     tax_style = 'quadratic_tax_curve'
 
     ax.plot(
-        np.linspace(0,nobs,nobs+1),
+        np.linspace(0,len(trades),len(trades)+1),
         c.history[plot_variate],
         color=colors[tax_style],
         alpha=alpha_opacity,
@@ -220,6 +229,7 @@ for i in range(num_iterations):
 
 
 
+fig, ax = plt.subplots()
 ########## START UNISWAP ##################
 # quadratic_tax
 for i in range(num_iterations):

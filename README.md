@@ -6,18 +6,22 @@ Install packages
 python setup.py install
 ```
 
-Run simulation script
-```
-ipython -i main.py
-```
-
 Run Stableswap plots script
 ```
 ipython -i stableswap_plots.py
 ```
 
-<!-- ![alt tag](./plots/stableswap_figure_1.png) -->
-<!-- ![alt tag](./plots/stableswap_figure_2.png) -->
+<img src="./plots/stableswap_figure_1.png" width="280" height="200">
+<img src="./plots/stableswap_figure_2.png" width="280" height="200">
 
-<img src="./plots/stableswap_figure_1.png" width="250" height="200">
-<img src="./plots/stableswap_figure_2.png" width="250" height="200">
+Run Uniswap sales tax simulation scripts
+```
+ipython -i main.py
+```
+
+Run Curve AMM sales tax simulation scripts
+* currently producing buggy results, fix in progress
+```
+ipython -i main_curve.py
+```
+
