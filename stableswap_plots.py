@@ -104,7 +104,7 @@ def plot_fig1_fig2():
     # the more people stay bonded, the greate the yield
     buyerBonusDx3 = [x*(1-percentage_bonded) for x in slippageDx3]
 
-    ## Dynamic dales Tax, slippage scaled
+    ## Dynamic Sales Tax, slippage scaled
     plt.plot(
         dx3[peg_index3+1:],
         slippageDx3[peg_index3:],
