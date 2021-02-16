@@ -95,6 +95,7 @@ def get_y(i, j, x, _xp, A=85):
 
 
 
+# Buggy for now, needs investigation + help from Curve
 def _xp(balances: list[float], rates: list[float]):
     # N_COINS = len(balances)
     # # result = rates
@@ -107,7 +108,7 @@ def _xp(balances: list[float], rates: list[float]):
     #
     # print("results", result)
     # return result
-	return balances
+    return balances
 
 
 
@@ -212,9 +213,9 @@ class Curve:
         prior_balance_x = self.balance_x
         prior_balance_y = self.balance_y
 
-        print("xp: ", xp)
+        # print("xp: ", xp)
         adjusted_xp = _xp([xp[0], xp[1]], RATES)
-        print("adjusted_xp: ", adjusted_xp)
+        # print("adjusted_xp: ", adjusted_xp)
 
         after_balance_x = self.balance_x + 1
         after_balance_y = stableswap_y(
@@ -290,17 +291,16 @@ class Curve:
             prior_balance_x,
             prior_balance_y,
         ])
-        print("curve prior price: ", prior_price)
-        print("prior_balance_x: ", prior_balance_x)
-        print("prior_balance_y: ", prior_balance_y)
+        # print("curve prior price: ", prior_price)
+        # print("prior_balance_x: ", prior_balance_x)
+        # print("prior_balance_y: ", prior_balance_y)
 
         # Calculate DSD burn before updating balances
         burn = tax_function(
             price=prior_price,
             dsd_amount=dsd_amount
         )
-        burn = 0
-        # print("burn:", burn)
+        print("burn:", burn)
 
         # actual amount sold into LP pool after burn
         leftover_dsd = np.abs(dsd_amount) - burn
@@ -312,8 +312,8 @@ class Curve:
             [self.balance_x, after_balance_y],
             self.A,
         )
-        print("after_balance_x: ", after_balance_x)
-        print("after_balance_y: ", after_balance_y)
+        # print("after_balance_x: ", after_balance_x)
+        # print("after_balance_y: ", after_balance_y)
 
         # calculate burn first, update balances
         self.balance_y = after_balance_y
@@ -443,20 +443,20 @@ def stableswap_x(y, xp=[50,50], A=85):
 def dydx_once(y2, y1, x2, x1):
     """calculates derivative for dy relative to dx"""
     # # Needed to figure out dUSDC/dDSD slippage/price impact
-    print("y2: ", y2)
-    print("y1: ", y1)
-    print("x2: ", x2)
-    print("x1: ", x1)
+    # print("y2: ", y2)
+    # print("y1: ", y1)
+    # print("x2: ", x2)
+    # print("x1: ", x1)
     return np.diff([y2, y1])[0] / np.diff([x2, x1])[0]
 
 
 def dxdy_once(y2, y1, x2, x1):
     """calculates derivative for dx relative to dy"""
     # Needed to figure out dUSDC/dDSD slippage/price impact
-    print("y2: ", y2)
-    print("y1: ", y1)
-    print("x2: ", x2)
-    print("x1: ", x1)
+    # print("y2: ", y2)
+    # print("y1: ", y1)
+    # print("x2: ", x2)
+    # print("x1: ", x1)
     return np.diff([x2, x1])[0] / np.diff([y2, y1])[0]
 
 
