@@ -7,7 +7,7 @@ import mplfinance as fplt
 
 from src.curve_amm import Curve, get_y, stableswap_y, stableswap_x
 from src.uniswap_amm import Uniswap, uniswap_y, uniswap_x, linear_y
-from src.tax_functions import quadratic_tax, linear_tax, no_tax
+from src.tax_functions import quadratic_tax, linear_tax, no_tax, log_tax
 from src.random import generate_trade
 
 
@@ -22,7 +22,8 @@ from src.curve_amm import Curve, _xp, stableswap_y, stableswap_x, get_y, get_D
 # 0.9898556552223209
 
 c1 = Curve(100000, 100000, A=20)
-c = Curve(100000, 100000, A=20)
+c = Curve(100000, 100000, A=100)
+c3 = Curve(100000, 4900000, A=100)
 c.swap(({ 'type': "sell", "amount": 10000 }), tax_function=no_tax)
 c.swap(({ 'type': "buy", "amount": 10000 }), tax_function=no_tax)
 
@@ -63,8 +64,8 @@ if __name__=="__main__":
 
 
 
-mu = -2000
-sigma = 10000
+mu = -1000
+sigma = 50000
 nobs = 8000
 plot_variate = 'prices'
 # plot_variate = 'treasury_balances'
@@ -72,7 +73,7 @@ plot_variate = 'prices'
 
 # DSD initial price: $0.X
 lp_initial_usdc = 1000000
-lp_initial_dsd  = 11000000
+lp_initial_dsd  = 91000000
 colors = dict({
     "quadratic_tax_uni": "dodgerblue",
     "linear_tax": "mediumorchid",
@@ -83,7 +84,7 @@ colors = dict({
     "quadratic_tax_curve": "orange",
 })
 alpha_opacity = 0.05
-num_iterations = 20
+num_iterations = 10
 
 
 
@@ -93,7 +94,7 @@ fig, ax = plt.subplots()
 
 # Curve quadratic tax
 for i in range(num_iterations):
-    c = Curve(lp_initial_usdc, lp_initial_dsd, A=100)
+    c = Curve(lp_initial_usdc, lp_initial_dsd, A=20)
     trades = [generate_trade(mu, sigma) for x in range(nobs)]
     _ = [c.swap(x, tax_function=quadratic_tax) for x in trades]
 
@@ -155,7 +156,7 @@ for i in range(num_iterations):
 
 # Curve NO tax
 for i in range(num_iterations):
-    c = Curve(lp_initial_usdc, lp_initial_dsd, A=100)
+    c = Curve(lp_initial_usdc, lp_initial_dsd, A=20)
     trades = [generate_trade(mu, sigma) for x in range(nobs)]
     _ = [c.swap(x, tax_function=no_tax) for x in trades]
 

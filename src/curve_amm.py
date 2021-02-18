@@ -219,7 +219,7 @@ class Curve:
         Returns virtual price (for calculating profit)
         """
         adjusted_xp = _xp([self.balance_x, self.balance_y], RATES)
-        D = get_D(adjusted_xp)
+        D = get_D(adjusted_xp, self.A)
         # D is in the units similar to DAI (e.g. converted to precision 1e18)
         # When balanced, D = n * x_u - total virtual value of the portfolio
         token_supply = self.balance_x + self.balance_y
@@ -417,8 +417,8 @@ def stableswap_y(x, xp=[50,50], A=85):
     j = 1 # position 1 for second coin
     amp = A
     y = get_y(i, j, x, xp, amp)
-    assert not np.isnan(y)
-    assert y >= 0
+    # assert not np.isnan(y)
+    # assert y >= 0
     return y
 
 def stableswap_x(y, xp=[50,50], A=85):

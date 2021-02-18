@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from src.curve_amm import get_y, stableswap_y
+from matplotlib.lines import Line2D
+from src.curve_amm import get_y, stableswap_y, get_D, stableswap_x
 from src.uniswap_amm import uniswap_y, uniswap_x, linear_y
 
 #######################################
@@ -32,8 +33,9 @@ def dydx_array(yy: list[float], xx: list[float], absolute=True) -> list[float]:
 
 
 
-def plot_fig1_fig2():
-    NUM_OBS = 4000
+def plot_fig1():
+
+    NUM_OBS = 8000
 
     ##### Fig. 1 In Stableswap whitepaper
     x1 = np.linspace(0.01, 30, NUM_OBS)
@@ -54,37 +56,56 @@ def plot_fig1_fig2():
     plt.plot(x2, y2, color='red', linestyle='dotted')
     plt.plot(x3, y3, color='blue')
     # plt.axis([0, 1000000, 0, 1000000])
-    plt.axis([0, 30, 0, 25])
+    plt.axis([-0.05, 30, -0.05, 25])
 
+
+
+
+
+
+def plot_fig2():
 
     ##### Fig. 2 In Stableswap whitepaper
-    peg_point: int = 5
-    peg_index1: int = find_peg_point(x1, y1)
-    peg_index3: int = find_peg_point(x3, y3)
+    NUM_OBS = 4000
 
-
-    dx1 = [x-peg_point for x in x1] # shifts graph to past peg point
+    ## Uniswap plot
+    x1 = np.linspace(0.01, 30, NUM_OBS)
+    y1 = [uniswap_y(x, 196) for x in x1]
     dydx1 = dydx_array(y1, x1)
+    peg_index1 = find_peg_point(x1, y1)
+    # shifts graph to past peg point
+    dx1 = [x-14 for x in x1]
 
+
+    ## Curve plot
+
+    fig, ax = plt.subplots(figsize=[6,4])
+
+    peg_point: int = 240
+
+    x3 = np.linspace(0.001, 2000+peg_point, NUM_OBS*10)
     dx3 = [x-peg_point for x in x3]
     # balances = [5,5]
     # xp = _xp([1, 1]) # -> [5,5]
-    y3 = [stableswap_y(x, [5,5], 100) for x in x3]
-    dydx3 = dydx_array(y3, x3)
+    y3 = [stableswap_y(x, [700,400], 100) for x in x3]
+    peg_index3: int = find_peg_point(x3, y3)
+    # dydx3 = dydx_array(y3, x3)
+    dydx3 = [get_D([y,x], 100) / (x+y) for x,y in zip(x3, y3)]
 
-    plt.figure(figsize=[5,3])
-    plt.plot(
+
+    ax.plot(
         dx1[peg_index1+1:],
         dydx1[peg_index1:],
         color='purple',
         linestyle='dashed',
     )
-    plt.plot(
-        dx3[peg_index3+1:],
-        dydx3[peg_index3:],
+    ax.plot(
+        np.divide(dx3, 200), # rescale results
+        dydx3,
         color="blue",
     )
-    plt.axis([0, 10, 0, 1.05])
+
+    # plt.axis([0, 10, 0.3, 1.05])
 
 
     ###### Sales Taxes on Curve AMMs
@@ -105,24 +126,40 @@ def plot_fig1_fig2():
     buyerBonusDx3 = [x*(1-percentage_bonded) for x in slippageDx3]
 
     ## Dynamic Sales Tax, slippage scaled
-    plt.plot(
-        dx3[peg_index3+1:],
-        slippageDx3[peg_index3:],
+    ax.plot(
+        np.divide(dx3, 200), # rescale results
+        slippageDx3,
         color="green",
-        )
+    )
     ## Dynamic Buyers bonus, slippage scaled, 50% of sales
-    plt.plot(
-        dx3[peg_index3+1:],
-        buyerBonusDx3[peg_index3:],
+    ax.plot(
+        np.divide(dx3, 200), # rescale results
+        buyerBonusDx3,
         color="green",
         lineStyle="dashed"
     )
 
-    plt.axis([0, 10, 0, 1.05])
+    ax.axis([0, 10, -0.1, 1.1])
     # plt.axis([0, 10, 0, 30])
+
+    plt.title("Curve slippage and Sales taxes")
+    plt.ylabel("Price DSD/USDC")
+    legend_elements = [
+        Line2D([0], [0], color='blue', lw=2,
+               label=r'Curve slippage'),
+        Line2D([0], [0], color='purple', lw=2,
+               label=r'Uniswap slippage', lineStyle="dotted"),
+        Line2D([0], [0], color='green', lw=2,
+               label=r'Curve sales tax'),
+        Line2D([0], [0], color='green', lw=2,
+               lineStyle="dotted",
+               label=r'tax diverted to buy/bonding rewards'),
+    ]
+    ax.legend(handles=legend_elements, loc='center left')
 
 
 
 if __name__=="__main__":
     print("Curve Stableswap plots")
-    plot_fig1_fig2()
+    plot_fig1()
+    plot_fig2()
