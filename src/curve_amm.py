@@ -97,18 +97,19 @@ def get_y(i, j, x, _xp, A=85):
 
 # Buggy for now, needs investigation + help from Curve
 def _xp(balances: list[float], rates: list[float]):
-    # N_COINS = len(balances)
-    # # result = rates
+    N_COINS = len(balances)
+    result = rates.copy()
     # result = RATES
-    # for i in range(N_COINS):
-    #     print("before: result[i]", result[i])
-    #     print("before balances[i]", result[i])
-    #     result[i] = result[i] * balances[i] / PRECISION
-    #     print("result[i]", result[i])
-    #
-    # print("results", result)
-    # return result
-    return balances
+    for i in range(N_COINS):
+        print("before: result[i]", result[i])
+        print("before balances[i]", balances[i])
+        # result[i] = result[i] * balances[i] / PRECISION
+        result[i] = result[i] * balances[i] / 1
+        print("result[i]", result[i])
+
+    print("results", result)
+    return result
+    # return balances
 
 
 
@@ -210,28 +211,19 @@ class Curve:
 
 
     def price_oracle(self, xp):
-        prior_balance_x = self.balance_x
-        prior_balance_y = self.balance_y
-
-        # print("xp: ", xp)
-        adjusted_xp = _xp([xp[0], xp[1]], RATES)
-        # print("adjusted_xp: ", adjusted_xp)
-
-        after_balance_x = self.balance_x + 1
-        after_balance_y = stableswap_y(
-            self.balance_x + 1,
-            adjusted_xp,
-            self.A,
-        )
-
-        slippage = dxdy_once(
-            y2 = after_balance_y,
-            y1 = prior_balance_y,
-            x2 = after_balance_x,
-            x1 = prior_balance_x,
-        )
-        price = np.abs(slippage)
+        price = self.get_virtual_price()
         return price
+
+    def get_virtual_price(self):
+        """
+        Returns virtual price (for calculating profit)
+        """
+        adjusted_xp = _xp([self.balance_x, self.balance_y], RATES)
+        D = get_D(adjusted_xp)
+        # D is in the units similar to DAI (e.g. converted to precision 1e18)
+        # When balanced, D = n * x_u - total virtual value of the portfolio
+        token_supply = self.balance_x + self.balance_y
+        return D * PRECISION / token_supply
 
 
 
@@ -460,30 +452,6 @@ def dxdy_once(y2, y1, x2, x1):
     return np.diff([x2, x1])[0] / np.diff([y2, y1])[0]
 
 
-
-
-def price_curve(
-    prior_balance_x,
-    prior_balance_y,
-    xp,
-    A,
-):
-
-    after_balance_x = prior_balance_x + 1
-    after_balance_y = stableswap_y(
-        prior_balance_x + 1,
-        xp,
-        A,
-    )
-    # calculate slippage + burn first, before swap
-    slippage = dxdy_once(
-        y2 = after_balance_y,
-        y1 = prior_balance_y,
-        x2 = after_balance_x,
-        x1 = prior_balance_x,
-    )
-    price = np.abs(slippage)
-    return price
 
 
 # from curve_amm import price_curve, dxdy_once

@@ -12,7 +12,7 @@ from src.random import generate_trade
 
 
 ##### Testing/Debugging
-from src.curve_amm import Curve, _xp, stableswap_y, stableswap_x
+from src.curve_amm import Curve, _xp, stableswap_y, stableswap_x, get_y, get_D
 # c = Curve(100000, 500000, A=20)
 # stableswap_x( 100000 + 1, [100000, 100000], 2000)
 # (100001-100000)/(99999.04761917747 - 100000)
@@ -21,9 +21,10 @@ from src.curve_amm import Curve, _xp, stableswap_y, stableswap_x
 # 0.9894878188482094
 # 0.9898556552223209
 
-# c = Curve(100000, 100000, A=20)
-# c.swap(({ 'type': "sell", "amount": 10000 }), tax_function=no_tax)
-# c.swap(({ 'type': "buy", "amount": 10000 }), tax_function=no_tax)
+c1 = Curve(100000, 100000, A=20)
+c = Curve(100000, 100000, A=20)
+c.swap(({ 'type': "sell", "amount": 10000 }), tax_function=no_tax)
+c.swap(({ 'type': "buy", "amount": 10000 }), tax_function=no_tax)
 
 
 
@@ -62,7 +63,7 @@ if __name__=="__main__":
 
 
 
-mu = -20000
+mu = -2000
 sigma = 10000
 nobs = 8000
 plot_variate = 'prices'
