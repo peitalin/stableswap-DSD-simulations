@@ -125,12 +125,14 @@ class Uniswap:
         return price_after
 
 
-    def buy_dsd(self, usdc_amount):
+    def buy_dsd_with_usdc(self, usdc_amount):
         """Buys usdc_amount worth of DSD
+        Denominated in USDC
         no taxes for buys"""
 
-        y = uniswap_y(self.balance_x + usdc_amount, self.k)
-        self.balance_x += usdc_amount
+        new_x = self.balance_x + usdc_amount
+        y = uniswap_y(new_x, self.k)
+        self.balance_x = new_x
         self.balance_y = y
 
         self.history['treasury_balances'].append(
@@ -138,6 +140,23 @@ class Uniswap:
         ) # no change to treasury on buys
         self.history['prices'].append(self.price_oracle())
         self.history['burns'].append(0)
+        return self.price_oracle()
+
+
+    def buy_dsd(self, dsd_amount):
+        """Buys DSD, denominated in DSD
+        no taxes for buys"""
+
+        new_y = self.balance_y - dsd_amount
+        x = uniswap_x(new_y, self.k)
+        self.balance_x = x
+        self.balance_y = new_y
+
+        self.history['treasury_balances'].append(
+            self.history['treasury_balances'][-1]
+        ) # no change to treasury on buys
+        self.history['prices'].append(self.price_oracle())
+        self.history['burns'].append(0) # no burns on buys
         return self.price_oracle()
 
 
@@ -165,6 +184,8 @@ class Uniswap:
         # actual amount sold into LP pool after burn
         leftover_dsd = np.abs(dsd_amount) - burn
 
+        # print('leftover_dsd:', leftover_dsd)
+        # print('self.balance_y:', self.balance_y + leftover_dsd)
         x = uniswap_x(self.balance_y + leftover_dsd, self.k)
         after_balance_x = x
         after_balance_y = self.balance_y + leftover_dsd
@@ -192,8 +213,9 @@ class Uniswap:
         """Sells dsd_amount worth of DSD
         sales taxes are scaled by slippage imparted to AMM curve
         """
-        # this needs its own function as you need to calculate slipage first, before calculating burn and updating pool balances
-        # unlike the other simpe price-based sales taxes
+        # this needs its own function as you need to calculate slippage first, before calculating burn and updating pool balances
+        # unlike the other simple price-based sales taxes
+
         dsd = np.abs(dsd_amount)
         prior_balance_x = self.balance_x
         prior_balance_y = self.balance_y
@@ -260,7 +282,13 @@ def uniswap_y(x, k=250):
 
 def uniswap_x(y, k=250):
     x = k/y
+    if np.isnan(x):
+        print('x: ', x)
+        print('y: ', y)
     assert not np.isnan(x)
+    if (x < 0):
+        print('x: ', x)
+        print('y: ', y)
     assert x >= 0
     return x
 
