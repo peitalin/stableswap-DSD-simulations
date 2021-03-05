@@ -71,6 +71,7 @@ def plot_fig2():
     ## Uniswap plot
     x1 = np.linspace(0.01, 30, NUM_OBS)
     y1 = [uniswap_y(x, 196) for x in x1]
+    # Get derivatives of the curve to plot
     dydx1 = dydx_array(y1, x1)
     peg_index1 = find_peg_point(x1, y1)
     # shifts graph to past peg point
@@ -156,6 +157,61 @@ def plot_fig2():
                label=r'tax diverted to buy/bonding rewards'),
     ]
     ax.legend(handles=legend_elements, loc='center left')
+
+
+
+def plot_fig3():
+    ### For testing purposes only
+
+    ##### Fig. 2 In Stableswap whitepaper
+    ##### using small numbers
+    NUM_OBS = 4000
+
+    ## Uniswap plot
+    x1 = np.linspace(0.01, 30, NUM_OBS)
+    y1 = [uniswap_y(x, 25) for x in x1]
+    # Get derivatives of the curve to plot
+    dydx1 = dydx_array(y1, x1)
+    peg_index1 = find_peg_point(x1, y1)
+    # shifts graph to past peg point
+    dx1 = [x-5 for x in x1]
+
+
+    ## Curve plot
+
+
+    peg_point: int = 0
+
+    x3 = np.linspace(0.01, 30, NUM_OBS)
+    xp = [5,5]
+    y3 = [stableswap_y(x, xp, 90) for x in x3]
+    dx3 = [x-peg_point for x in x3]
+
+    peg_index3: int = find_peg_point(x3, y3)
+    dydx3 = dydx_array(y3, x3)
+    dydx3_ = [get_D([y,x], 100) / (x+y) for x,y in zip(x3, y3)]
+
+    fig, ax = plt.subplots(figsize=[6,4])
+    ax.plot(
+        dx1[peg_index1+1:],
+        dydx1[peg_index1:],
+        color='purple',
+        linestyle='dashed',
+    )
+    ax.plot(
+        dx3[1:], # rescale results
+        dydx3,
+        color="blue",
+    )
+    ax.plot(
+        np.divide(dx3, 2), # rescale results
+        dydx3_,
+        color="green",
+    )
+
+    plt.axis([0, 10, 0, 1.2])
+
+
 
 
 

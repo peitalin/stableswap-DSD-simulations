@@ -132,13 +132,24 @@ class Curve:
         self.balance_y = y
         self.x_name = x_name
         self.y_name = y_name
+
+        # uses _xp(rates) function, but need to find out
+        # what "rates" is from Curve smart contract
+        # [x, y] even seems to give results that look like
+        # the plots in the Stableswap whitepaper
+        # self.xp = [x, y]
+        # self.xp = _xp([x, y], RATES)
         self.A = A # amplification parameter
+        # lower values make the curve behave close to
+        # Uniswap constant product invariant,
+        # higher values make it behave
+        # more closely to a sum invariant
 
         self.history = dict({
             # history of treasury balances over time
             'treasury_balances': [0],
             # history of prices
-            'prices': [self.price_oracle()], # initial price
+            'prices': [self.price_oracle([x, y])], # initial price
             # history of burns over time
             'burns': [0],
         })
@@ -161,7 +172,10 @@ class Curve:
             balance_x = self.balance_x,
             y_name = self.y_name,
             balance_y = self.balance_y,
-            price = self.price_oracle(),
+            price = self.price_oracle([
+                self.balance_x,
+                self.balance_y,
+            ]),
             treasury_balance = treasury_balance
         )
 
@@ -197,38 +211,21 @@ class Curve:
     #     )
 
 
-    def price_oracle(self):
+    def price_oracle(self, xp):
         price = self.get_virtual_price()
         return price
-
-    # def get_virtual_price(self):
-    #     """
-    #     Returns virtual price (for calculating profit)
-    #     Uses Curve contract's get_D() function to get price
-    #     """
-    #     adjusted_xp = _xp([self.balance_x, self.balance_y], RATES)
-    #     D = get_D(adjusted_xp, self.A)
-    #     # D is in the units similar to DAI (e.g. converted to precision 1e18)
-    #     # When balanced, D = n * x_u - total virtual value of the portfolio
-    #     token_supply = self.balance_x + self.balance_y
-    #     return D * PRECISION / token_supply
 
     def get_virtual_price(self):
         """
         Returns virtual price (for calculating profit)
-        Uses the derivative method to find price
         """
-        # pretend we are selling 1 y and calculate
-        # derivative which will give us the price
-        y2 = self.balance_y + 10
-        y1 = self.balance_y
+        adjusted_xp = _xp([self.balance_x, self.balance_y], RATES)
+        D = get_D(adjusted_xp, self.A)
+        # D is in the units similar to DAI (e.g. converted to precision 1e18)
+        # When balanced, D = n * x_u - total virtual value of the portfolio
+        token_supply = self.balance_x + self.balance_y
+        return D * PRECISION / token_supply
 
-        xp = _xp([ self.balance_y, self.balance_x ], RATES)
-        new_x = stableswap_x(y2, xp, self.A)
-        x2 = new_x
-        x1 = self.balance_x
-
-        return -dxdy_once( y2, y1, x2, x1 )
 
 
     def swap(self, trade, tax_function):
@@ -266,6 +263,7 @@ class Curve:
             self.balance_y,
         ])
 
+
         self.history['treasury_balances'].append(
             self.history['treasury_balances'][-1]
         ) # no change to treasury on buys
@@ -289,14 +287,16 @@ class Curve:
             xp,
             self.A,
         )
-        # print("before balance_x: ", self.balance_x)
-        # print("after  balance_x: ", new_x)
-        # print("before balance_y: ", self.balance_y)
-        # print("after  balance_y: ", new_y)
+        print("before balance_x: ", self.balance_x)
+        print("after  balance_x: ", new_x)
+        print("before balance_y: ", self.balance_y)
+        print("after  balance_y: ", new_y)
         self.balance_y = new_y
         self.balance_x = new_x
-        after_price = self.price_oracle()
-        # print("after_price: ", after_price)
+        after_price = self.price_oracle([
+            new_y,
+            new_x,
+        ])
 
 
         self.history['treasury_balances'].append(
@@ -315,14 +315,17 @@ class Curve:
 
         prior_balance_x = self.balance_x
         prior_balance_y = self.balance_y
-        prior_price = self.price_oracle()
+        prior_price = self.price_oracle([
+            prior_balance_x,
+            prior_balance_y,
+        ])
 
         # Calculate DSD burn before updating balances
         burn = tax_function(
             price=prior_price,
             dsd_amount=dsd_amount
         )
-        # print("burn:", burn)
+        print("burn:", burn)
 
         # actual amount sold into LP pool after burn
         leftover_dsd = np.abs(dsd_amount) - burn
@@ -331,7 +334,7 @@ class Curve:
 
         after_balance_x = stableswap_x(
             after_balance_y,
-            [self.balance_x, self.balance_y],
+            [self.balance_x, after_balance_y],
             self.A,
         )
         # print("after_balance_x: ", after_balance_x)
@@ -340,8 +343,11 @@ class Curve:
         # calculate burn first, update balances
         self.balance_y = after_balance_y
         self.balance_x = after_balance_x
-        after_price = self.price_oracle()
-        # print("after_price: ", after_price)
+        after_price = self.price_oracle([
+            after_balance_x,
+            after_balance_y,
+        ])
+        print("after_price: ", after_price)
 
         # # Update xp balances
         # self.xp = [after_balance_x, after_balance_y]
@@ -369,7 +375,10 @@ class Curve:
         dsd = np.abs(dsd_amount)
         prior_balance_x = self.balance_x
         prior_balance_y = self.balance_y
-        prior_price = self.price_oracle()
+        prior_price = self.price_oracle([
+            prior_balance_x,
+            prior_balance_y,
+        ])
 
         xp = _xp([ self.balance_x, self.balance_y ], RATES)
         # balance_y (DSD) increases when DSD is sold to pool
@@ -390,8 +399,8 @@ class Curve:
         burn =  (1 - np.abs(slippage)) * dsd if (np.abs(slippage) < 1) else 0
         # print("burn: {}".format(1 - slippage))
         # print("price: {}".format(prior_price))
-        # print("slippage: {}".format(slippage))
-        # print("burn: {}".format(burn))
+        print("slippage: {}".format(slippage))
+        print("burn: {}".format(burn))
 
         # actual amount sold into LP pool after burn
         leftover_dsd = dsd - burn
@@ -407,7 +416,10 @@ class Curve:
         # now update balances adjusting for burn
         self.balance_y = after_balance_y
         self.balance_x = after_balance_x
-        after_price = self.price_oracle()
+        after_price = self.price_oracle([
+            after_balance_x,
+            after_balance_y,
+        ])
 
 
         # fraction of sales taxes paid to treasury
@@ -472,6 +484,39 @@ def dxdy_once(y2, y1, x2, x1):
     # print("x1: ", x1)
     return np.diff([x2, x1])[0] / np.diff([y2, y1])[0]
 
+
+
+
+# from curve_amm import price_curve, dxdy_once
+#
+# c = Curve(lp_initial_usdc, lp_initial_dsd, A=100)
+# # c = Curve(999999.07, 5000001, A=100)
+# c.swap({'type': 'sell', 'amount': -1},
+#     tax_function=no_tax)
+#
+# # prior
+# price_curve(
+#     1000000,
+#     5000000,
+#     [1000000, 5000000],
+#     100
+# )
+# # after
+# price_curve(
+#     999999.0709302969,
+#     5000001,
+#     [999999.0709302969, 5000001],
+#     100
+# )
+#
+# # after
+# price_curve(
+#     1000000.03039,
+#     5000001,
+#     [1000000, 5000000],
+#     100
+# )
+#
 
 
 
