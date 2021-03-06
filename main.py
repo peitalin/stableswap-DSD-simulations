@@ -7,46 +7,9 @@ import mplfinance as fplt
 
 from src.curve_amm import Curve, get_y, stableswap_y, stableswap_x, _xp
 from src.uniswap_amm import Uniswap, uniswap_y, uniswap_x, linear_y
-from src.tax_functions import quadratic_tax, linear_tax, no_tax
-from src.random import generate_trade
+from src.tax_functions import quadratic_tax, linear_tax, no_tax, logistic_tax, linear_logistic_tax
+from src.random import generate_trade, bayes_update_normal
 from src.time_series_data import create_time_series_data_store
-
-
-
-if __name__=="__main__":
-    print("DSD DIP-14 Simulations!")
-
-
-
-# Create data structures to hold simulation time series data
-data_stores = create_time_series_data_store()
-avg_prices = data_stores['avg_prices']
-avg_burns = data_stores['avg_burns']
-avg_treasury_balances = data_stores['avg_treasury_balances']
-colors = data_stores['colors']
-
-
-mu = -1000
-sigma = 8000
-nobs = 8000
-plot_variate = 'prices'
-# plot_variate = 'treasury_balances'
-# plot_variate = 'burns'
-
-# DSD initial price: $0.2
-lp_initial_usdc = 1000000
-lp_initial_dsd  = 5000000
-colors = dict({
-    "quadratic_tax_uni": "dodgerblue",
-    "linear_tax": "mediumorchid",
-    "no_tax": "black",
-    "slippage_tax_uni": "crimson",
-    "slippage_tax_curve": "green",
-    "quadratic_tax_curve": "orange",
-})
-alpha_opacity = 0.05
-num_iterations = 5
-
 
 
 def average_over_timeseries(tax_style, num_iterations, ax):
@@ -79,18 +42,147 @@ def average_over_timeseries(tax_style, num_iterations, ax):
 
 
 
+if __name__=="__main__":
+    print("DSD DIP-14 Simulations!")
+
+
+
+# Create data structures to hold simulation time series data
+data_stores = create_time_series_data_store()
+avg_prices = data_stores['avg_prices']
+avg_burns = data_stores['avg_burns']
+avg_treasury_balances = data_stores['avg_treasury_balances']
+colors = data_stores['colors']
+
+
+mu = 0
+sigma = 1000
+nobs = 5000
+plot_variate = 'prices'
+
+# DSD initial price: $0.2
+lp_initial_usdc = 1000000
+lp_initial_dsd  = 5000000
+alpha_opacity = 0.1
+num_iterations = 50
+
+
+
+
+
+
 fig, ax = plt.subplots()
+mu_1 = mu # initial value of mean
+sigma_1 = sigma # initial value of sigma
 
 ########## START UNISWAP ##################
 # quadratic_tax
 for i in range(num_iterations):
+
+    print('Quadratic tax iteration: ', i)
+    u = Uniswap(lp_initial_usdc, lp_initial_dsd)
+
+    # divide each time series into 10 lots,
+    # 10 updates to the trade generating distribution
+    for j in range(100):
+        # print('bucket: ', j)
+        print('mu_1: ', mu_1)
+        # print('sigma_1: ', sigma_1)
+        # generate 1/10 of trades with this mu & sigma
+        trades = [generate_trade(mu_1, sigma_1) for x in range(nobs//100)]
+        trades2 = [t['amount'] for t in trades]
+        # generate prices for 1/10 of trades
+        j_prices = [u.swap(x, tax_function=quadratic_tax) for x in trades]
+
+        # calculate mean, stdev for recent rades
+        mu_2 = np.mean(j_prices) * 1000
+        # sigma_2 = np.std(trades_std)
+
+        # update trade Normal distribution with
+        # new mean and sigma from recent trades
+        # posterior_distribution = bayes_update_normal(
+        #     sigma_1,
+        #     sigma_2,
+        #     mu_1,
+        #     mu_2,
+        # )
+        # mu_1 = posterior_distribution['mu']
+
+        # prevent mu_2 from exploding upwards
+        if mu_2 > 1000:
+            mu_1 = 1000
+        else:
+            mu_1 = mu_2
+
+
+
+    tax_style = 'quadratic_tax_uni_bayesian'
+
+    ax.plot(
+        np.linspace(0,nobs,nobs+1),
+        u.history[plot_variate],
+        color=colors[tax_style],
+        alpha=alpha_opacity,
+    )
+
+    if i == 0:
+        avg_prices[tax_style] = u.history['prices']
+        avg_burns[tax_style] = u.history['burns']
+        avg_treasury_balances[tax_style] = u.history['treasury_balances']
+    else:
+        # accumulate prices, divide by num_iterations after
+        avg_prices[tax_style] = np.add(
+            avg_prices[tax_style],
+            u.history['prices']
+        )
+        avg_burns[tax_style] = np.add(
+            avg_burns[tax_style],
+            u.history['burns']
+        )
+        avg_treasury_balances[tax_style] = np.add(
+            avg_treasury_balances[tax_style],
+            u.history['treasury_balances']
+        )
+
+    if i == (num_iterations - 1):
+        # last loop, average over all iterations
+        average_over_timeseries(
+            tax_style,
+            num_iterations,
+            ax
+        )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+for i in range(num_iterations):
+    print('Logistic tax iteration: ', i)
     u = Uniswap(lp_initial_usdc, lp_initial_dsd)
     trades = [generate_trade(mu, sigma) for x in range(nobs)]
-    # _ = [u.swap(x, tax_function=quadratic_tax) for x in trades]
     _ = [u.swap(x, tax_function=quadratic_tax) for x in trades]
 
-    # notes: Average trade is -1000, but DSD prices generally
-    # end up increasing because of the burn + slippage working against a seller
     tax_style = 'quadratic_tax_uni'
 
     ax.plot(
@@ -132,18 +224,21 @@ for i in range(num_iterations):
 
 
 
-plt.title("Simulating sales taxes on Uniswap vs Curve AMMs")
+plt.title("Sales taxes on Uniswap with dynamic traders")
 plt.xlabel("number of trades")
 plt.ylabel("Price: DSD/USDC")
 # place a text box in upper left in axes coords
 ax.text(
-    1550, .22,
+    100, .3,
     r'''
     {runs} runs of {nobs} trades sampled from a
     $X \sim N(\mu=${mu},$\sigma$={sigma}) distribution.
 
+    where $\mu = price_j$ * 1000, a function of price
+
+    Sales tax is quadratic_tax
     Initial price: 0.2 DSD/USDC
-    Initial LP: 100,000 USDC / 500,000 DSD
+    Initial LP: 1,000,000 USDC / 5,000,000 DSD
     '''.format(runs=4*num_iterations, nobs=nobs, mu=mu, sigma=sigma),
     {'color': 'black', 'fontsize': 8},
     verticalalignment='bottom',
@@ -152,18 +247,10 @@ ax.text(
 
 
 legend_elements = [
+    Line2D([0], [0], color=colors['quadratic_tax_uni_bayesian'], lw=2,
+           label=r'Bayesian traders - dynamic $\mu$'),
     Line2D([0], [0], color=colors['quadratic_tax_uni'], lw=2,
-           label=r'$(1-price)^2 \times DSD_{sold}$'),
-    # Line2D([0], [0], color=colors['linear_tax'], lw=2,
-    #        label=r'$(1-price) \times DSD_{sold}$'),
-    # Line2D([0], [0], color=colors['slippage_tax_uni'], lw=2,
-    #        label=r'$(1 - slippage) \times DSD_{sold}$'),
-    # Line2D([0], [0], color=colors["no_tax"], lw=2,
-    #        label=r'$0 \times DSD_{sold}$'),
-    Line2D([0], [0], color=colors['quadratic_tax_curve'], lw=2,
-           label=r'Curve quadratic tax'),
-    Line2D([0], [0], color=colors['slippage_tax_curve'], lw=2,
-           label=r'Curve slippage tax'),
+           label=r'Naive traders - static $\mu = 0$'),
 ]
 ax.legend(handles=legend_elements, loc='upper left')
 

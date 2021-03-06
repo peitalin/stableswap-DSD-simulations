@@ -2,7 +2,7 @@
 
 def create_time_series_data_store():
     """
-    Creates data strcutures to store timeseries data
+    Creates data structures to store timeseries data
     for simulations
     """
     avg_prices = dict({
@@ -15,6 +15,8 @@ def create_time_series_data_store():
         "slippage_tax_uni": [],
         "slippage_tax_curve": [],
         "quadratic_tax_curve": [],
+        # bayesian traders
+        "quadratic_tax_uni_bayesian": [],
     })
     avg_burns = dict({
         "quadratic_tax_uni": [],
@@ -26,6 +28,8 @@ def create_time_series_data_store():
         "slippage_tax_uni": [],
         "slippage_tax_curve": [],
         "quadratic_tax_curve": [],
+        # bayesian traders
+        "quadratic_tax_uni_bayesian": [],
     })
     avg_treasury_balances = dict({
         "quadratic_tax_uni": [],
@@ -37,6 +41,8 @@ def create_time_series_data_store():
         "slippage_tax_uni": [],
         "slippage_tax_curve": [],
         "quadratic_tax_curve": [],
+        # bayesian traders
+        "quadratic_tax_uni_bayesian": [],
     })
     colors = dict({
         "quadratic_tax_uni": "dodgerblue",
@@ -48,6 +54,8 @@ def create_time_series_data_store():
         "slippage_tax_uni": "crimson",
         "slippage_tax_curve": "green",
         "quadratic_tax_curve": "orange",
+        # bayesian traders
+        "quadratic_tax_uni_bayesian": "green",
     })
 
     return dict({

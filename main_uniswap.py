@@ -50,13 +50,7 @@ for i in range(num_iterations):
     print('Quadratic tax iteration: ', i)
     u = Uniswap(lp_initial_usdc, lp_initial_dsd)
     trades = [generate_trade(mu, sigma) for x in range(nobs)]
-    # _ = [u.swap(x, tax_function=quadratic_tax) for x in trades]
-    for x in trades:
-        p = u.swap(x, tax_function=quadratic_tax)
-        print("price: ", p)
 
-    # notes: Average trade is -1000, but DSD prices generally
-    # end up increasing because of the burn + slippage working against a seller
     tax_style = 'quadratic_tax_uni'
 
     ax.plot(

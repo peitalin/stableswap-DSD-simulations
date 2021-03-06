@@ -178,11 +178,12 @@ class Uniswap:
         # Or after? After might be better as it takes into account the size of the sell order (slippage)
         burn = tax_function(
             price=prior_price,
-            dsd_amount=dsd_amount
+            dsd_amount=np.abs(dsd_amount)
         )
 
         # actual amount sold into LP pool after burn
         leftover_dsd = np.abs(dsd_amount) - burn
+        assert leftover_dsd >= 0
 
         # print('leftover_dsd:', leftover_dsd)
         # print('self.balance_y:', self.balance_y + leftover_dsd)

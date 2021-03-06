@@ -3,7 +3,13 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
 def quadratic_tax(price, dsd_amount):
-    return (1 - price)**2 * np.abs(dsd_amount)
+    # tax is only in-effet under the peg
+    if price > 1:
+        return 0
+
+    tax = (1 - price)**2 * np.abs(dsd_amount)
+    assert tax <= dsd_amount
+    return tax
 
 def logistic_tax(price, dsd_amount):
     return 1/(1 + np.exp((price-0.5)*10)) * np.abs(dsd_amount)
