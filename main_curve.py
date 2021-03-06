@@ -9,6 +9,7 @@ from src.curve_amm import Curve, get_y, stableswap_y, stableswap_x
 from src.uniswap_amm import Uniswap, uniswap_y, uniswap_x, linear_y
 from src.tax_functions import quadratic_tax, linear_tax, no_tax, log_tax
 from src.random import generate_trade
+from src.time_series_data import create_time_series_data_store
 
 
 ##### Testing/Debugging
@@ -27,39 +28,17 @@ from src.curve_amm import Curve, _xp, stableswap_y, stableswap_x, get_y, get_D, 
 
 
 
-avg_prices = dict({
-    "quadratic_tax_uni": [],
-    "linear_tax": [],
-    "no_tax": [],
-    "no_tax_curve": [],
-    "slippage_tax_uni": [],
-    "slippage_tax_curve": [],
-    "quadratic_tax_curve": [],
-})
-avg_burns = dict({
-    "quadratic_tax_uni": [],
-    "linear_tax": [],
-    "no_tax": [],
-    "no_tax_curve": [],
-    "slippage_tax_uni": [],
-    "slippage_tax_curve": [],
-    "quadratic_tax_curve": [],
-})
-avg_treasury_balances = dict({
-    "quadratic_tax_uni": [],
-    "linear_tax": [],
-    "no_tax": [],
-    "no_tax_curve": [],
-    "slippage_tax_uni": [],
-    "slippage_tax_curve": [],
-    "quadratic_tax_curve": [],
-})
-
-
 if __name__=="__main__":
     print("DSD DIP-14 Curve AMM Simulations!")
 
 
+
+# Create data structures to hold simulation time series data
+data_stores = create_time_series_data_store()
+avg_prices = data_stores['avg_prices']
+avg_burns = data_stores['avg_burns']
+avg_treasury_balances = data_stores['avg_treasury_balances']
+colors = data_stores['colors']
 
 
 mu = -10000
@@ -72,15 +51,6 @@ plot_variate = 'prices'
 # DSD initial price: $0.X
 lp_initial_usdc = 11_000_000
 lp_initial_dsd  = 11_000_000
-colors = dict({
-    "quadratic_tax_uni": "dodgerblue",
-    "linear_tax": "mediumorchid",
-    "no_tax": "black",
-    "no_tax_curve": "black",
-    "slippage_tax_uni": "crimson",
-    "slippage_tax_curve": "green",
-    "quadratic_tax_curve": "orange",
-})
 alpha_opacity = 0.1
 num_iterations = 50
 A = 20
@@ -287,7 +257,7 @@ plt.xlabel("number of trades")
 plt.ylabel("Price: DSD/USDC")
 # place a text box in upper left in axes coords
 ax.text(
-    2200, .25,
+    100, .15,
     r'''
     {runs} runs of {nobs} trades sampled from a
     $X \sim N(\mu=${mu},$\sigma$={sigma}) distribution.
@@ -309,7 +279,6 @@ legend_elements = [
 ]
 ax.legend(handles=legend_elements, loc='upper right')
 
-## Even with a slight negative bias, mean = -100, the burns push the price upward slowly over time
 
 
 
@@ -318,70 +287,3 @@ ax.legend(handles=legend_elements, loc='upper right')
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-# fig, ax = plt.subplots()
-#
-# for tax_style in ["quadratic_tax_uni", "quadratic_tax_curve"]:
-#     ax.plot(
-#         np.linspace(0,nobs,nobs+1),
-#         avg_treasury_balances[tax_style],
-#         color=colors[tax_style],
-#         alpha=1,
-#         linewidth=2,
-#         linestyle="dotted",
-#     )
-#
-# plt.title("Treasury funds from sales taxes")
-# plt.xlabel("number of trades")
-# plt.ylabel("Treasury balance (millions DSD)")
-# legend_elements = [
-#     Line2D([0], [0], color=colors['quadratic_tax_uni'], lw=2,
-#            label=r'Uniswap quadratic tax'),
-#     Line2D([0], [0], color=colors['quadratic_tax_curve'], lw=2,
-#            label=r'Curve quadratic tax'),
-#     # Line2D([0], [0], color=colors['slippage_tax_curve'], lw=2,
-#     #        label=r'Curve slippage tax'),
-# ]
-# ax.legend(handles=legend_elements, loc='lower right')
-#
-#
-#
-#
-#
-# plt.title("Price impact of sales on Curve AMMs with sales taxes")
-# plt.xlabel("number of trades")
-# plt.ylabel("Price: DSD/USDC")
-# # place a text box in upper left in axes coords
-# ax.text(
-#     4200, .12,
-#     r'''
-#     {runs} runs of {nobs} trades sampled from a
-#     $X \sim N(\mu=${mu},$\sigma$={sigma}) distribution.
-#
-#     Initial LP: 1,000,000 USDC / 11,000,000 DSD
-#     '''.format(runs=4*num_iterations, nobs=nobs, mu=mu, sigma=sigma),
-#     {'color': 'black', 'fontsize': 8},
-#     verticalalignment='bottom',
-#     bbox=dict(boxstyle='round', facecolor='white', alpha=0.5)
-# )
-#
-#
-# legend_elements = [
-#     # Line2D([0], [0], color=colors['quadratic_tax_uni'], lw=2,
-#     #        label=r'$(1-price)^2 \times DSD_{sold}$'),
-#     Line2D([0], [0], color=colors['quadratic_tax_curve'], lw=2, label=r'Curve quadratic tax'),
-#     Line2D([0], [0], color=colors['no_tax_curve'], lw=2,
-#            label=r'Curve no tax'),
-# ]
-# ax.legend(handles=legend_elements, loc='lower right')
-#

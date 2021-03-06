@@ -5,50 +5,12 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import mplfinance as fplt
 
-from src.curve_amm import Curve, get_y, stableswap_y, stableswap_x
+from src.curve_amm import Curve, get_y, stableswap_y, stableswap_x, _xp
 from src.uniswap_amm import Uniswap, uniswap_y, uniswap_x, linear_y
 from src.tax_functions import quadratic_tax, linear_tax, no_tax
 from src.random import generate_trade
+from src.time_series_data import create_time_series_data_store
 
-
-from src.curve_amm import Curve, _xp, stableswap_y, stableswap_x
-# c = Curve(100000, 500000, A=20)
-# stableswap_x( 100000 + 1, [100000, 100000], 2000)
-# (100001-100000)/(99999.04761917747 - 100000)
-
-# 0.9895494479
-# 0.9894878188482094
-# 0.9898556552223209
-
-c = Curve(100000, 100000, A=20)
-c.swap(({ 'type': "sell", "amount": 10000 }), tax_function=no_tax)
-c.swap(({ 'type': "buy", "amount": 10000 }), tax_function=no_tax)
-
-
-avg_prices = dict({
-    "quadratic_tax_uni": [],
-    "linear_tax": [],
-    "no_tax": [],
-    "slippage_tax_uni": [],
-    "slippage_tax_curve": [],
-    "quadratic_tax_curve": [],
-})
-avg_burns = dict({
-    "quadratic_tax_uni": [],
-    "linear_tax": [],
-    "no_tax": [],
-    "slippage_tax_uni": [],
-    "slippage_tax_curve": [],
-    "quadratic_tax_curve": [],
-})
-avg_treasury_balances = dict({
-    "quadratic_tax_uni": [],
-    "linear_tax": [],
-    "no_tax": [],
-    "slippage_tax_uni": [],
-    "slippage_tax_curve": [],
-    "quadratic_tax_curve": [],
-})
 
 
 if __name__=="__main__":
@@ -56,6 +18,12 @@ if __name__=="__main__":
 
 
 
+# Create data structures to hold simulation time series data
+data_stores = create_time_series_data_store()
+avg_prices = data_stores['avg_prices']
+avg_burns = data_stores['avg_burns']
+avg_treasury_balances = data_stores['avg_treasury_balances']
+colors = data_stores['colors']
 
 
 mu = -1000
@@ -77,143 +45,41 @@ colors = dict({
     "quadratic_tax_curve": "orange",
 })
 alpha_opacity = 0.05
-num_iterations = 50
+num_iterations = 5
 
 
 
-########## CURVE ##################
-
-fig, ax = plt.subplots()
-
-# Curve quadratic tax
-for i in range(num_iterations):
-    c = Curve(lp_initial_usdc, lp_initial_dsd, A=100)
-    trades = [generate_trade(mu, sigma) for x in range(nobs)]
-    # trades = [x for x in _trades if x['type'] == 'sell']
-    _ = [c.swap(x, tax_function=no_tax) for x in trades]
-    # _ = [c.swap(x, tax_function=quadratic_tax) for x in trades]
-
-    # notes: Average trade is -1000, but DSD prices generally
-    # end up increasing because of the burn + slippage working against a seller
-    tax_style = 'quadratic_tax_curve'
-
+def average_over_timeseries(tax_style, num_iterations, ax):
+    """
+    averages over all simulation timeseries to produce
+    an average timeseries plotline
+    """
+    # last loop, average over all iterations
+    avg_prices[tax_style] = np.divide(
+        avg_prices[tax_style],
+        num_iterations
+    )
+    avg_burns[tax_style] = np.divide(
+        avg_burns[tax_style],
+        num_iterations
+    )
+    avg_treasury_balances[tax_style] = np.divide(
+        avg_treasury_balances[tax_style],
+        num_iterations
+    )
+    # Then plot mean price line with alpha=1
     ax.plot(
-        np.linspace(0,len(trades),len(trades)+1),
-        c.history[plot_variate],
+        np.linspace(0,nobs,nobs+1),
+        avg_prices[tax_style],
         color=colors[tax_style],
-        alpha=alpha_opacity,
+        alpha=1,
+        linewidth=2,
+        linestyle="dotted",
     )
 
-    if i == 0:
-        avg_prices[tax_style] = c.history['prices']
-        avg_burns[tax_style] = c.history['burns']
-        avg_treasury_balances[tax_style] = c.history['treasury_balances']
-    else:
-        # accumulate prices, divide by num_iterations after
-        avg_prices[tax_style] = np.add(
-            avg_prices[tax_style],
-            c.history['prices']
-        )
-        avg_burns[tax_style] = np.add(
-            avg_burns[tax_style],
-            c.history['burns']
-        )
-        avg_treasury_balances[tax_style] = np.add(
-            avg_treasury_balances[tax_style],
-            c.history['treasury_balances']
-        )
-
-    if i == (num_iterations - 1):
-        # last loop, average over all iterations
-        avg_prices[tax_style] = np.divide(
-            avg_prices[tax_style],
-            num_iterations
-        )
-        avg_burns[tax_style] = np.divide(
-            avg_burns[tax_style],
-            num_iterations
-        )
-        avg_treasury_balances[tax_style] = np.divide(
-            avg_treasury_balances[tax_style],
-            num_iterations
-        )
-        # Then plot mean price line with alpha=1
-        ax.plot(
-            np.linspace(0,nobs,nobs+1),
-            avg_prices[tax_style],
-            color=colors[tax_style],
-            alpha=1,
-            linewidth=2,
-            linestyle="dotted",
-        )
 
 
-# # Curve slippage tax
-# for i in range(num_iterations):
-#     c = Curve(lp_initial_usdc, lp_initial_dsd)
-#     trades = [generate_trade(mu, sigma) for x in range(nobs)]
-#     _ = [c.swap(x, tax_function='slippage') for x in trades]
-#
-#     # notes: Average trade is -1000, but DSD prices generally
-#     # end up increasing because of the burn + slippage working against a seller
-#     tax_style = 'slippage_tax_curve'
-#
-#     ax.plot(
-#         np.linspace(0,nobs,nobs+1),
-#         c.history[plot_variate],
-#         color=colors[tax_style],
-#         alpha=alpha_opacity,
-#     )
-#
-#     if i == 0:
-#         avg_prices[tax_style] = c.history['prices']
-#         avg_burns[tax_style] = c.history['burns']
-#         avg_treasury_balances[tax_style] = c.history['treasury_balances']
-#     else:
-#         # accumulate prices, divide by num_iterations after
-#         avg_prices[tax_style] = np.add(
-#             avg_prices[tax_style],
-#             c.history['prices']
-#         )
-#         avg_burns[tax_style] = np.add(
-#             avg_burns[tax_style],
-#             c.history['burns']
-#         )
-#         avg_treasury_balances[tax_style] = np.add(
-#             avg_treasury_balances[tax_style],
-#             c.history['treasury_balances']
-#         )
-#
-#     if i == (num_iterations - 1):
-#         # last loop, average over all iterations
-#         avg_prices[tax_style] = np.divide(
-#             avg_prices[tax_style],
-#             num_iterations
-#         )
-#         avg_burns[tax_style] = np.divide(
-#             avg_burns[tax_style],
-#             num_iterations
-#         )
-#         avg_treasury_balances[tax_style] = np.divide(
-#             avg_treasury_balances[tax_style],
-#             num_iterations
-#         )
-#         # Then plot mean price line with alpha=1
-#         ax.plot(
-#             np.linspace(0,nobs,nobs+1),
-#             avg_prices[tax_style],
-#             color=colors[tax_style],
-#             alpha=1,
-#             linewidth=2,
-#             linestyle="dotted",
-#         )
-# ########## END CURVE ##################
-
-
-
-
-
-
+fig, ax = plt.subplots()
 
 ########## START UNISWAP ##################
 # quadratic_tax
@@ -253,29 +119,14 @@ for i in range(num_iterations):
             u.history['treasury_balances']
         )
 
+    # last loop, average over all iterations
     if i == (num_iterations - 1):
-        # last loop, average over all iterations
-        avg_prices[tax_style] = np.divide(
-            avg_prices[tax_style],
-            num_iterations
+        average_over_timeseries(
+            tax_style,
+            num_iterations,
+            ax
         )
-        avg_burns[tax_style] = np.divide(
-            avg_burns[tax_style],
-            num_iterations
-        )
-        avg_treasury_balances[tax_style] = np.divide(
-            avg_treasury_balances[tax_style],
-            num_iterations
-        )
-        # Then plot mean price line with alpha=1
-        ax.plot(
-            np.linspace(0,nobs,nobs+1),
-            avg_prices[tax_style],
-            color=colors[tax_style],
-            alpha=1,
-            linewidth=2,
-            linestyle="dotted",
-        )
+
 
 
 
@@ -316,12 +167,10 @@ legend_elements = [
 ]
 ax.legend(handles=legend_elements, loc='upper left')
 
-## Even with a slight negative bias, mean = -100, the burns push the price upward slowly over time
+
 
 ## The random samples are sampling with replacement, reality with the burns is....sampling without replacement (since it gets burnt away)
 
-## For plotting candlestick charts of the last simulation
-# u.ohlc_plot(100)
 
 
 

@@ -9,38 +9,9 @@ from src.curve_amm import Curve, get_y, stableswap_y, stableswap_x
 from src.uniswap_amm import Uniswap, uniswap_y, uniswap_x, linear_y
 from src.tax_functions import quadratic_tax, linear_tax, no_tax, logistic_tax, linear_logistic_tax
 from src.random import generate_trade
+from src.time_series_data import create_time_series_data_store
 
 
-
-avg_prices = dict({
-    "quadratic_tax_uni": [],
-    "linear_tax": [],
-    "no_tax": [],
-    "slippage_tax_uni": [],
-    "logistic_tax_uni": [],
-    "linear_logistic_tax_uni": [],
-    # "slippage_tax_curve": [],
-    # "quadratic_tax_curve": [],
-})
-avg_burns = dict({
-    "quadratic_tax_uni": [],
-    "linear_tax": [],
-    "no_tax": [],
-    "slippage_tax_uni": [],
-    "linear_logistic_tax_uni": [],
-    # "slippage_tax_curve": [],
-    # "quadratic_tax_curve": [],
-})
-avg_treasury_balances = dict({
-    "quadratic_tax_uni": [],
-    "linear_tax": [],
-    "no_tax": [],
-    "slippage_tax_uni": [],
-    "logistic_tax_uni": [],
-    "linear_logistic_tax_uni": [],
-    # "slippage_tax_curve": [],
-    # "quadratic_tax_curve": [],
-})
 
 
 
@@ -48,6 +19,12 @@ if __name__=="__main__":
     print("DSD DIP-14 Uniswap Simulations!")
 
 
+# Create data structures to hold simulation time series data
+data_stores = create_time_series_data_store()
+avg_prices = data_stores['avg_prices']
+avg_burns = data_stores['avg_burns']
+avg_treasury_balances = data_stores['avg_treasury_balances']
+colors = data_stores['colors']
 
 
 mu = 0
@@ -60,16 +37,6 @@ plot_variate = 'prices'
 # DSD initial price: $0.1
 lp_initial_usdc = 1_000_000
 lp_initial_dsd  = 10_000_000
-colors = dict({
-    "quadratic_tax_uni": "dodgerblue",
-    "linear_tax": "mediumorchid",
-    "no_tax": "black",
-    "slippage_tax_uni": "crimson",
-    "logistic_tax_uni": "red",
-    "linear_logistic_tax_uni": "yellow",
-    "slippage_tax_curve": "green",
-    "quadratic_tax_curve": "orange",
-})
 alpha_opacity = 0.05
 num_iterations = 50
 
@@ -151,7 +118,7 @@ for i in range(num_iterations):
     trades = [generate_trade(mu, sigma) for x in range(nobs)]
     _ = [u.swap(x, tax_function=linear_tax) for x in trades]
 
-    tax_style = 'linear_tax';
+    tax_style = 'linear_tax_uni';
 
     ax.plot(
         np.linspace(0,nobs,nobs+1),
@@ -211,7 +178,7 @@ for i in range(num_iterations):
     trades = [generate_trade(mu, sigma) for x in range(nobs)]
     _ = [u.swap(x, tax_function=no_tax) for x in trades]
 
-    tax_style = 'no_tax';
+    tax_style = 'no_tax_uni';
 
     ax.plot(
         np.linspace(0,nobs,nobs+1),
@@ -473,11 +440,11 @@ ax.text(
 legend_elements = [
     Line2D([0], [0], color=colors['quadratic_tax_uni'], lw=2,
            label=r'$(1-price)^2 \times DSD_{sold}$ (quadratic_tax)'),
-    Line2D([0], [0], color=colors['linear_tax'], lw=2,
+    Line2D([0], [0], color=colors['linear_tax_uni'], lw=2,
            label=r'$(1-price) \times DSD_{sold}$ (linear_tax)'),
     Line2D([0], [0], color=colors['slippage_tax_uni'], lw=2,
            label=r'$1/(1 - e^{price-0.5}) \times DSD_{sold}$ (logistic_tax)'),
-    Line2D([0], [0], color=colors["no_tax"], lw=2,
+    Line2D([0], [0], color=colors["no_tax_uni"], lw=2,
            label=r'$0 \times DSD_{sold}$ (no_tax)'),
     # Line2D([0], [0], color=colors['quadratic_tax_curve'], lw=2,
     #        label=r'Curve quadratic tax'),
@@ -505,8 +472,8 @@ def plot_treasury_balances():
     for tax_style in avg_treasury_balances.keys():
         if tax_style not in [
             "quadratic_tax_uni",
-            "linear_tax",
-            "no_tax",
+            "linear_tax_uni",
+            "no_tax_uni",
             "logistic_tax_uni"
         ]:
             continue
@@ -526,7 +493,7 @@ def plot_treasury_balances():
     legend_elements = [
         Line2D([0], [0], color=colors['quadratic_tax_uni'], lw=2,
                label=r'$(1-price)^2 \times DSD_{sold}$ (quadratic_tax)'),
-        Line2D([0], [0], color=colors['linear_tax'], lw=2,
+        Line2D([0], [0], color=colors['linear_tax_uni'], lw=2,
                label=r'$(1-price) \times DSD_{sold}$ (linear_tax)'),
         Line2D([0], [0], color=colors['logistic_tax_uni'], lw=2,
                label=r'$(1 - e^{price-0.5}) \times DSD_{sold}$ (logistic_tax)'),

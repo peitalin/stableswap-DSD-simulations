@@ -34,28 +34,29 @@ def dydx_array(yy: list[float], xx: list[float], absolute=True) -> list[float]:
 
 
 def plot_fig1():
+    """This plot reproduces plot 1 in Stableswap paper """
 
     NUM_OBS = 8000
 
     ##### Fig. 1 In Stableswap whitepaper
+    # Uniswap constant-product invariant
     x1 = np.linspace(0.01, 30, NUM_OBS)
     y1 = [uniswap_y(x, 25) for x in x1]
 
+    # linear constant-sum invariant
     x2 = np.linspace(0.01, 10, NUM_OBS)
     y2 = [linear_y(x, 10) for x in x2]
 
-    # x3 = np.linspace(0.01, 1000000, NUM_OBS)
-    # xp = [100000,500000]
+    # Curve Stableswap invariant
     x3 = np.linspace(0.01, 30, NUM_OBS)
     xp = [5,5]
     y3 = [stableswap_y(x, xp, 20) for x in x3]
 
+    # Create the plots
     plt.figure(figsize=[4.75,3])
-    # plt.figure(figsize=[4,4])
     plt.plot(x1, y1, color='purple', linestyle='dashed')
     plt.plot(x2, y2, color='red', linestyle='dotted')
     plt.plot(x3, y3, color='blue')
-    # plt.axis([0, 1000000, 0, 1000000])
     plt.axis([-0.05, 30, -0.05, 25])
 
 
@@ -64,11 +65,14 @@ def plot_fig1():
 
 
 def plot_fig2():
+    """
+    This plot attempts to reproduce plot 2 in Stableswap paper as closely as possible
+    """
 
     ##### Fig. 2 In Stableswap whitepaper
     NUM_OBS = 4000
 
-    ## Uniswap plot
+    ## Uniswap plot data
     x1 = np.linspace(0.01, 30, NUM_OBS)
     y1 = [uniswap_y(x, 196) for x in x1]
     # Get derivatives of the curve to plot
@@ -78,22 +82,17 @@ def plot_fig2():
     dx1 = [x-14 for x in x1]
 
 
-    ## Curve plot
-
-    fig, ax = plt.subplots(figsize=[6,4])
-
+    ## Curve plot data
     peg_point: int = 240
 
     x3 = np.linspace(0.001, 2000+peg_point, NUM_OBS*10)
     dx3 = [x-peg_point for x in x3]
-    # balances = [5,5]
-    # xp = _xp([1, 1]) # -> [5,5]
     y3 = [stableswap_y(x, [700,400], 100) for x in x3]
     peg_index3: int = find_peg_point(x3, y3)
-    # dydx3 = dydx_array(y3, x3)
     dydx3 = [get_D([y,x], 100) / (x+y) for x,y in zip(x3, y3)]
 
-
+    ## Create plots
+    fig, ax = plt.subplots(figsize=[6,4])
     ax.plot(
         dx1[peg_index1+1:],
         dydx1[peg_index1:],
@@ -173,13 +172,11 @@ def plot_fig3():
     # Get derivatives of the curve to plot
     dydx1 = dydx_array(y1, x1)
     peg_index1 = find_peg_point(x1, y1)
-    # shifts graph to past peg point
+    # shifts graph to start at peg point
     dx1 = [x-5 for x in x1]
 
 
     ## Curve plot
-
-
     peg_point: int = 0
 
     x3 = np.linspace(0.01, 30, NUM_OBS)

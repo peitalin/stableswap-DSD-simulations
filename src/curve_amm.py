@@ -15,13 +15,18 @@ PRECISION2 = 0.001
 # I set it ast 0.001 here for smoother plots
 
 # "rates" on Curve' smart contract. needs investigation
-# RATES = [ 0.9999983333, 0.9999983333 ]
 RATES = [ 1, 1 ]
 
 
 # https://github.com/curvefi/curve-contract/blob/295e7daaad0654a6c7a233f77e82a01fb78d85b4/contracts/pools/usdt/StableSwapUSDT.vy#L183
 
 def get_D(xp, A=85):
+    """
+    D invariant calculation in non-overflowing integer operations iteratively
+    A * sum(x_i) * n**n + D = A * D * n**n + D**(n+1) / (n**n * prod(x_i))
+    Converging solution:
+    D[j+1] = (A * n**n * sum(x_i) - D[j]**(n+1) / (n**n prod(x_i))) / (A * n**n - 1)
+    """
 
     N_COINS = len(xp)
     S = 0
