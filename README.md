@@ -20,7 +20,6 @@ ipython -i main_uniswap.py
 ```
 
 Run Curve AMM sales tax simulation scripts
-* currently producing buggy results, fix in progress
 ```
 ipython -i main_curve.py
 ```
